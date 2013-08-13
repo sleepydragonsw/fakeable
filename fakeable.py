@@ -51,7 +51,8 @@ class Fakeable(type):
             # ensure that the __FAKE_DOMAIN__ attribute of the class is hashable
             hash(__FAKE_DOMAIN__)
 
-        return type.__new__(cls, name, bases, dict_)
+        type_ = type.__new__(cls, name, bases, dict_)
+        return type_
 
     def __call__(self, *args, **kwargs):
         # use/create a fake instance, if one is registered
