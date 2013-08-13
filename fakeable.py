@@ -35,6 +35,8 @@ class Fakeable(type):
     """
 
     def __new__(cls, name, bases, dict_):
+        # use the class name as the "name" of the fake, but allow the class
+        # to override this name by setting __FAKE_NAME__
         try:
             __FAKE_NAME__ = dict_["__FAKE_NAME__"]
         except KeyError:
@@ -43,6 +45,8 @@ class Fakeable(type):
             # ensure that the __FAKE_NAME__ attribute of the class is hashable
             hash(__FAKE_NAME__)
 
+        # use the default domain for the fake, but allow the class to override
+        # the domain by setting __FAKE_DOMAIN__
         try:
             __FAKE_DOMAIN__ = dict_["__FAKE_DOMAIN__"]
         except KeyError:
@@ -51,6 +55,7 @@ class Fakeable(type):
             # ensure that the __FAKE_DOMAIN__ attribute of the class is hashable
             hash(__FAKE_DOMAIN__)
 
+        # create the type object with the possibly-slightly-modified dict
         type_ = type.__new__(cls, name, bases, dict_)
         return type_
 
