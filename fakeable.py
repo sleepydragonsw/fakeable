@@ -36,7 +36,7 @@ class Fakeable(type):
 
     def __new__(cls, name, bases, dict_):
         try:
-            __FAKE_NAME__ = dict["__FAKE_NAME__"]
+            __FAKE_NAME__ = dict_["__FAKE_NAME__"]
         except KeyError:
             dict_["__FAKE_NAME__"] = name
         else:
@@ -44,7 +44,7 @@ class Fakeable(type):
             hash(__FAKE_NAME__)
 
         try:
-            __FAKE_DOMAIN__ = dict["__FAKE_DOMAIN__"]
+            __FAKE_DOMAIN__ = dict_["__FAKE_DOMAIN__"]
         except KeyError:
             dict_["__FAKE_DOMAIN__"] = name
         else:
