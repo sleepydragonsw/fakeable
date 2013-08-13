@@ -50,7 +50,7 @@ class Fakeable(type):
         try:
             __FAKE_DOMAIN__ = dict_["__FAKE_DOMAIN__"]
         except KeyError:
-            dict_["__FAKE_DOMAIN__"] = name
+            dict_["__FAKE_DOMAIN__"] = None
         else:
             # ensure that the __FAKE_DOMAIN__ attribute of the class is hashable
             hash(__FAKE_DOMAIN__)
