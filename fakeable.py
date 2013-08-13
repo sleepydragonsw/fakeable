@@ -61,13 +61,15 @@ class Fakeable(type):
 
     def __call__(self, *args, **kwargs):
         # use/create a fake instance, if one is registered
+        fake_domain_name = self.__FAKE_DOMAIN__
         try:
-            fake_domain = fakes[self.__FAKE_DOMAIN__]
+            fake_domain = fakes[fake_domain_name]
         except KeyError:
             pass
         else:
+            fake_name = self.__FAKE_NAME__
             try:
-                instance = fake_domain.get(*args, **kwargs)
+                instance = fake_domain.get(fake_name, *args, **kwargs)
             except fake_domain.FakeNotFound:
                 pass
             else:
