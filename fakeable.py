@@ -69,7 +69,7 @@ class Fakeable(type):
                 return instance
 
         # no fake instance was registered; create a real instance
-        instance = type(self, *args, **kwargs)
+        instance = type.__call__(self, *args, **kwargs)
         return instance
 
 ################################################################################
