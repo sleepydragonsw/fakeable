@@ -9,6 +9,9 @@ nothing that needs to be done except to declare a specific metaclass to opt-in
 to being faked.  Then, during testing the tests specify to use a fake version
 of a specific class and then "magically" at runtime a fake version is used.
 
+Full documentation available at: https://fakeable.readthedocs.org
+Source code available at: https://github.com/sleepydragonsw/fakeable
+
 For example, consider the class below, which simply reads the contents of a
 text file and returns it:
 
