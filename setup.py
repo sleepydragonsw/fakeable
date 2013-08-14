@@ -6,7 +6,7 @@ with io.open("README.txt", "rt", encoding="utf8") as f:
 
 distutils.core.setup(
     name="fakeable",
-    version="1.0.0",
+    version="1.0.1",
     description="enables seamless replacement of \"real\" objects "
         "with \"fake\" objects during unit testing",
     long_description=long_description,
