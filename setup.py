@@ -1,10 +1,15 @@
+import io
 import distutils.core
+
+with io.open("README.txt", "rt", encoding="utf8") as f:
+    long_description = f.read()
 
 distutils.core.setup(
     name="Fakeable",
     version="1.0.0",
     description="enables seamless replacement of \"real\" objects "
         "with \"fake\" objects during unit testing",
+    long_description=long_description,
     author="Denver Coneybeare",
     author_email="denver@sleepydragon.org",
     url="https://github.com/sleepydragonsw/fakeable",
