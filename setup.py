@@ -5,7 +5,7 @@ with io.open("README.txt", "rt", encoding="utf8") as f:
     long_description = f.read()
 
 distutils.core.setup(
-    name="Fakeable",
+    name="fakeable",
     version="1.0.0",
     description="enables seamless replacement of \"real\" objects "
         "with \"fake\" objects during unit testing",
@@ -13,7 +13,7 @@ distutils.core.setup(
     author="Denver Coneybeare",
     author_email="denver@sleepydragon.org",
     url="https://github.com/sleepydragonsw/fakeable",
-    py_modules=["fakeable"],
+    py_modules=["fakeable", "fakeable_test"],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
