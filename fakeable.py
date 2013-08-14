@@ -32,6 +32,36 @@ __all__ = [
 class Fakeable(type):
     """
     A metaclass to be used by types that wish to be fakeable.
+
+    In order to make a class fakeable,
+    all that needs to be done is set *fakeable.Fakeable* as its metaclass.
+    In Python 2, this done by setting the special attribute
+    ``__metaclass__ = fakeable.Fakeable`` in the class definition.
+    In Python 3, this is done by specifying ``metaclass=fakeable.Fakeable``
+    in the base class list of the class definition.
+
+    Python 2 example::
+
+        class HttpDownloader(object):
+            __metaclass__ = fakeable.Fakeable
+            ...
+
+    Python 3 example::
+
+        class HttpDownloader(metaclass=fakeable.Fakeable):
+            ...
+
+    If you have the third-party ``six`` module installed,
+    then you can do this in a way that works in both Python 2 and Python 3::
+
+        class HttpDownloader(six.with_metaclass(fakeable.Fakeable)):
+            ...
+
+    The name used in the *fakeable* module functions to refer to this class
+    is simply the name of the class.
+    This value is stored in the ``__FAKE_NAME__`` attribute of the class.
+    If a class explicitly defines a ``__FAKE_NAME__`` attribute
+    then that value will be used instead of the default.
     """
 
     def __new__(cls, name, bases, dict_):
