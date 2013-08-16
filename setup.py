@@ -4,9 +4,12 @@ import distutils.core
 with io.open("README.txt", "rt", encoding="utf8") as f:
     long_description = f.read()
 
+with io.open("VERSION.txt", "rt", encoding="utf8") as f:
+    version = f.read().strip()
+
 distutils.core.setup(
     name="fakeable",
-    version="1.0.1",
+    version=version,
     description="enables seamless replacement of \"real\" objects "
         "with \"fake\" objects during unit testing",
     long_description=long_description,
