@@ -1,2 +1,6 @@
 include *.txt
 include *.py
+include doc/conf.py
+include doc/*.rst
+include doc/make.bat
+include doc/Makefile
