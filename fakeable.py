@@ -25,6 +25,7 @@ __all__ = [
     "set_fake_object",
     "unset",
     "clear",
+    "FakeableCleanupMixin",
 ]
 
 ################################################################################
@@ -297,5 +298,105 @@ def clear():
     Unregisters all fake objects that have been previously registered.
     """
     fake_factory.clear()
+
+################################################################################
+
+class FakeableCleanupMixin(object):
+    """
+    A convenience class that can be inherited by unit test classes so that
+    fakes are automatically cleaned up before and after each test runs.
+    This helps prevent fake objects inadvertently leaking into other test cases,
+    which can cause difficult-to-diagnose behaviour when it happens.
+
+    This class is intended to be subclassed by other classes that also inherit
+    from ``unittest.TestCase``.
+    It defines :meth:`~fakeable.FakeableCleanupMixin.setUp` and
+    :meth:`~fakeable.FakeableCleanupMixin.tearDown`, both of which simply invoke
+    :func:`fakeable.clear` and the method of the same name in the superclass.
+
+    *Example*: using this "mixin" class in a ``unittest.TestCase``::
+
+        class TestSomething(fakeable.FakeableCleanupMixin, unittest.TestCase):
+            def test(self):
+                fakeable.set_fake_class("Something", FakeSomething)
+                self.assertTrue(do_something())
+
+    Before the method ``test()`` is executed the ``setUp()`` method will invoke
+    :func:`fakeable.clear` to make sure there are no leftover fakes that were
+    registered elsewhere.  Also, after the ``test()`` method completes,
+    ``tearDown()`` will invoke  :func:`fakeable.clear` to make sure that none of
+    the registered fakes are left behind to screw things up downstream.
+
+    Note, however, that ``fakeable.FakeableCleanupMixin``
+    *must* occur before ``unittest.TestCase`` in the base class list.
+    Otherwise, the ``setUp()`` and ``tearDown()`` methods of
+    ``FakeableCleanupMixin`` will not be invoked.
+
+    *Bad Example (of specifying base classes of a test case)*::
+
+        # BAD!! -- because unittest.TestCase is specified *before*
+        # fakeable.FakeableCleanupMixin in the base class list,
+        # the setUp() and tearDown() methods of FakeableCleanupMixin will not
+        # be invoked, defeating the purpose of adding it as a base class
+        class TestSomething(unittest.TestCase, fakeable.FakeableCleanupMixin):
+            ...
+
+    *Good Example (of specifying base classes of a test case)*::
+
+        # GOOD -- because unittest.TestCase is specified *after*
+        # fakeable.FakeableCleanupMixin in the base class list,
+        # the setUp() and tearDown() methods of FakeableCleanupMixin *will*
+        # be invoked, properly unregistering all registered fakes
+        class TestSomething(fakeable.FakeableCleanupMixin, unittest.TestCase):
+            ...
+
+    If the ``FakeableCleanupMixin`` subclass also wants to override ``setUp()``
+    and/or ``tearDown()``, be sure to use the ``super()`` built-in to call the
+    method of the same name in the superclass (as opposed to naming the
+    superclass and calling it directly).  Using ``super()`` ensures that the
+    method-resolution order ("mro") will be used and each superclass' method
+    will be invoked in the correct order.
+
+    *Bad Example (of overriding the setUp() method)*::
+
+        class TestSomething(fakeable.FakeableCleanupMixin, unittest.TestCase):
+            def setUp(self):
+                # BAD!! -- does not respect the MRO and some superclass setUp()
+                # methods may not be invoked
+                fakeable.FakeableCleanupMixin.setUp(self)
+                ...
+
+    *Good Example (of overriding the setUp() method)*::
+
+        class TestSomething(fakeable.FakeableCleanupMixin, unittest.TestCase):
+            def setUp(self):
+                # GOOD -- respects the MRO and ensures that the setUp() method
+                # of each superclass is invoked and in the correct order
+                super(TestSomething, self).setUp()
+                ...
+    """
+
+    def setUp(self):
+        """
+        Invokes the ``setUp`` method of the superclass, and then
+        :func:`fakeable.clear`.
+        This ensures that fakes that have been previously set do not leak into
+        tests.
+        """
+        super(FakeableCleanupMixin, self).setUp()
+        clear()
+
+    def tearDown(self):
+        """
+        Invokes :func:`fakeable.clear` and then the ``tearDown()`` method of the
+        superclass.
+        This ensures that fakes that have been set in tests do not leak into
+        other tests.  It also precludes the need to explicitly unregister
+        fake objects.
+        """
+        try:
+            clear()
+        finally:
+            super(FakeableCleanupMixin, self).tearDown()
 
 ################################################################################

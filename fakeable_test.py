@@ -53,25 +53,7 @@ class MyCoolClassCustomFakeName(six.with_metaclass(fakeable.Fakeable)):
 
 ################################################################################
 
-class FakeableTestCase(unittest.TestCase):
-
-    def setUp(self):
-        super(FakeableTestCase, self).setUp()
-        fakeable.clear()
-
-    def tearDown(self):
-        try:
-            fakeable.clear()
-        finally:
-            super(FakeableTestCase, self).tearDown()
-
-################################################################################
-
-class Test_Fakeable___new__(FakeableTestCase):
-
-    def setUp(self):
-        super(Test_Fakeable___new__, self).setUp()
-        fakeable.clear()
+class Test_Fakeable___new__(fakeable.FakeableCleanupMixin, unittest.TestCase):
 
     def test_DefaultFakeName(self):
         self.assertEqual(MyCoolClass.__FAKE_NAME__, "MyCoolClass")
@@ -86,7 +68,7 @@ class Test_Fakeable___new__(FakeableTestCase):
 
 ################################################################################
 
-class Test_Fakeable___call__(FakeableTestCase):
+class Test_Fakeable___call__(fakeable.FakeableCleanupMixin, unittest.TestCase):
 
     def test_NoFakeRegistered(self):
         x = MyCoolClass()
@@ -264,3 +246,66 @@ class Test_Fakeable___call__(FakeableTestCase):
         fakeable.set_fake_class("MyCoolClass", MyUnfakeableClass2)
         x = MyCoolClass()
         self.assertIsInstance(x, MyUnfakeableClass1)
+
+################################################################################
+
+class Test_FakeableCleanupMixin(unittest.TestCase):
+
+    def test_setUp_SuperclassSetUpSuccessful(self):
+        fakeable.set_fake_object("MyCoolClass", object())
+        x = self.TestableFakeableCleanupMixin()
+        x.setUp()
+        obj = MyCoolClass()
+        self.assertIsInstance(obj, MyCoolClass, "setUp() should have cleared "
+            "all of the registered fakes")
+        self.assertTrue(x.setUp_invoked)
+
+    def test_setUp_SuperclassSetUpRaisesException(self):
+        fake_my_cool_class_instance = object()
+        fakeable.set_fake_object("MyCoolClass", fake_my_cool_class_instance)
+        x = self.TestableFakeableCleanupMixin(setUp_exception=ValueError())
+        with self.assertRaises(ValueError):
+            x.setUp()
+        obj = MyCoolClass()
+        self.assertIs(obj, fake_my_cool_class_instance, "setUp() should *not* "
+            "have cleared all of the registered fakes")
+        self.assertTrue(x.setUp_invoked)
+
+    def test_tearDown_SuperclassSetUpSuccessful(self):
+        fakeable.set_fake_object("MyCoolClass", object())
+        x = self.TestableFakeableCleanupMixin()
+        x.tearDown()
+        obj = MyCoolClass()
+        self.assertIsInstance(obj, MyCoolClass, "tearDown() should have cleared "
+            "all of the registered fakes")
+        self.assertTrue(x.tearDown_invoked)
+
+    def test_tearDown_SuperclassSetUpRaisesException(self):
+        fakeable.set_fake_object("MyCoolClass", object())
+        x = self.TestableFakeableCleanupMixin(tearDown_exception=ValueError())
+        with self.assertRaises(ValueError):
+            x.tearDown()
+        obj = MyCoolClass()
+        self.assertIsInstance(obj, MyCoolClass, "tearDown() should have cleared "
+            "all of the registered fakes")
+        self.assertTrue(x.tearDown_invoked)
+
+    class DemoBaseClass(object):
+        def __init__(self, setUp_exception=None, tearDown_exception=None):
+            self.setUp_exception = setUp_exception
+            self.tearDown_exception = tearDown_exception
+            self.setUp_invoked = False
+            self.tearDown_invoked = False
+        def setUp(self):
+            self.setUp_invoked = True
+            if self.setUp_exception is not None:
+                raise self.setUp_exception
+        def tearDown(self):
+            self.tearDown_invoked = True
+            if self.tearDown_exception is not None:
+                raise self.tearDown_exception
+
+    class TestableFakeableCleanupMixin(fakeable.FakeableCleanupMixin, DemoBaseClass):
+        pass
+
+################################################################################

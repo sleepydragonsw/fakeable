@@ -90,6 +90,17 @@ Finally, write the unit test that uses the fake version of ``HttpDownloader``::
     import unittest
     class TestHttpDownloader(unittest.TestCase):
         def test_InvalidUrl(self):
+            with fakeable.set_fake_class("HttpDownloader", FakeHttpDownloader):
+                retval = download_urls(["foo", "bar"])
+            self.assertListEqual(retval, [None, None])
+
+This unit test can be further simplified
+by using the :class:`~fakeable.FakeableCleanupMixin`
+to automatically unregister the fakes::
+
+    import unittest
+    class TestHttpDownloader(unittest.TestCase, fakeable.FakeableCleanupMixin):
+        def test_InvalidUrl(self):
             fakeable.set_fake_class("HttpDownloader", FakeHttpDownloader)
             retval = download_urls(["foo", "bar"])
             self.assertListEqual(retval, [None, None])
@@ -188,6 +199,7 @@ There are three different ways to unregister a fake object:
 2. :func:`fakeable.clear`
 3. the context manager returned from :func:`fakeable.set_fake_object`
    or :func:`fakeable.set_fake_class`
+4. :class:`~fakeable.FakeableCleanupMixin`
 
 By invoking :func:`fakeable.unset` with the same ``name``
 that was specified to either :func:`fakeable.set_fake_object`
@@ -214,14 +226,39 @@ For example::
 In the code sample above, the fake object will be automatically unset
 when the "with" block is exited.
 
+If using the ``unittest`` testing framework from the Python standard library
+you can use the :class:`~fakeable.FakeableCleanupMixin` class
+to automatically unregister all fakes at the beginning and end of each test case.
+This is especially useful to avoid fakes accidentally remaining registered
+after the test completes.
+To use :class:`~fakeable.FakeableCleanupMixin`,
+simply make your unit test case classes inherit from both
+``unittest.TestCase`` and :class:`~fakeable.FakeableCleanupMixin`.
+This will add ``setUp()`` and ``tearDown`` methods to the test class
+which invoke :func:`fakeable.clear` before and after your test, respectively.
+See the documentation for :class:`~fakeable.FakeableCleanupMixin` for details.
+
 API Reference
 =============
 
+The ``Fakeable`` Metaclass
+--------------------------
+
 .. autoclass:: fakeable.Fakeable
+
+Registering and Unregistering Fakes
+-----------------------------------
+
 .. autofunction:: fakeable.set_fake_class
 .. autofunction:: fakeable.set_fake_object
 .. autofunction:: fakeable.unset
 .. autofunction:: fakeable.clear
+
+The ``FakeableCleanupMixin`` Helper Class
+-----------------------------------------
+
+.. autoclass:: fakeable.FakeableCleanupMixin
+   :members:
 
 License
 =======
