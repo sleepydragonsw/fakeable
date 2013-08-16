@@ -112,73 +112,16 @@ class FakeFactory(object):
         self.fake_factories = {}
 
     def set_fake_class(self, name, value):
-        """
-        Configures the class with the given name to create fake objects instead
-        of real objects when created.  When an instance of the class of the
-        given name is created a new instance of the given type will be created
-        instead.
-
-        Arguments:
-            *name* (string or Fakeable)
-                the name of the class, or the class itself, that will have fake
-                instances created instead of real instances; if a string, this
-                will be the name of the class or, if the class defines
-                __FAKE_NAME__, the value of that class' __FAKE_NAME__ attribute.
-            *value* (class)
-                the class whose instances will be created in place of the real
-                class; whatever arguments were given to the __init__() method
-                of the real class will be passed on to the __init__() method of
-                the created instance of this class.
-
-        Returns a context manager that can be used as the target of a "with"
-        statement; when the context of the "with" statement is exited the fake
-        class will be automatically unregistered by a call to self.unset(name).
-        """
         entry = FakeClassEntry(self, name, value)
         self.fake_factories[name] = entry
         return entry
 
     def set_fake_object(self, name, value):
-        """
-        Configures the class with the given name to always use a fake object
-        instead of real objects when created.  When an instance of the class of
-        the given name is created the given value will be returned instead.
-
-        Arguments:
-            *name* (string or Fakeable)
-                the name of the class, or the class itself, that will have fake
-                instances created instead of real instances; if a string, this
-                will be the name of the class or, if the class defines
-                __FAKE_NAME__, the value of that class' __FAKE_NAME__ attribute.
-            *value* (object)
-                the object to be returned in place of a new instance of the real
-                class; whatever arguments were given to the __init__() method
-                of the real class will be discarded.
-
-        Returns a context manager that can be used as the target of a "with"
-        statement; when the context of the "with" statement is exited the fake
-        object will be automatically unregistered by a call to self.unset(name).
-        """
         entry = FakeObjectEntry(self, name, value)
         self.fake_factories[name] = entry
         return entry
 
     def unset(self, name):
-        """
-        Unregisters a fake that was registered by a previous invocation of one
-        of the sex_XXX() methods of this object.
-
-        Arguments:
-            *name* (string or Fakeable)
-                the name of the class, or the class itself, whose fake is to be
-                unregistered; if a string, this will be the name of the class
-                or, if the class defines __FAKE_NAME__, the value of that class'
-                __FAKE_NAME__ attribute.
-
-        Returns True if a fake was indeed registered with the given name and
-        was successfully unregistered.  Returns False if a fake was *not*
-        registered with the given name and therefore this method did nothing.
-        """
         try:
             del self.fake_factories[name]
         except KeyError:
@@ -187,9 +130,6 @@ class FakeFactory(object):
             return True
 
     def clear(self):
-        """
-        Unregisters all fake objects that have been previously registered.
-        """
         self.fake_factories.clear()
 
     def get(self, name, *args, **kwargs):
@@ -286,9 +226,76 @@ class FakeClassEntry(FakeEntry):
 fake_factory = FakeFactory()
 
 # expose the methods of the default FakeFactory as module-level functions
-set_fake_class = fake_factory.set_fake_class
-set_fake_object = fake_factory.set_fake_object
-unset = fake_factory.unset
-clear = fake_factory.clear
+def set_fake_class(name, value):
+    """
+    Configures the class with the given name to create fake objects instead
+    of real objects when created.  When an instance of the class of the
+    given name is created a new instance of the given type will be created
+    instead.
+
+    Arguments:
+        *name* (string or Fakeable)
+            the name of the class, or the class itself, that will have fake
+            instances created instead of real instances; if a string, this
+            will be the name of the class or, if the class defines
+            __FAKE_NAME__, the value of that class' __FAKE_NAME__ attribute.
+        *value* (class)
+            the class whose instances will be created in place of the real
+            class; whatever arguments were given to the __init__() method
+            of the real class will be passed on to the __init__() method of
+            the created instance of this class.
+
+    Returns a context manager that can be used as the target of a "with"
+    statement; when the context of the "with" statement is exited the fake
+    class will be automatically unregistered by a call to self.unset(name).
+    """
+    fake_factory.set_fake_class(name, value)
+
+def set_fake_object(name, value):
+    """
+    Configures the class with the given name to always use a fake object
+    instead of real objects when created.  When an instance of the class of
+    the given name is created the given value will be returned instead.
+
+    Arguments:
+        *name* (string or Fakeable)
+            the name of the class, or the class itself, that will have fake
+            instances created instead of real instances; if a string, this
+            will be the name of the class or, if the class defines
+            __FAKE_NAME__, the value of that class' __FAKE_NAME__ attribute.
+        *value* (object)
+            the object to be returned in place of a new instance of the real
+            class; whatever arguments were given to the __init__() method
+            of the real class will be discarded.
+
+    Returns a context manager that can be used as the target of a "with"
+    statement; when the context of the "with" statement is exited the fake
+    object will be automatically unregistered by a call to self.unset(name).
+    """
+    fake_factory.set_fake_object(name, value)
+
+def unset(name):
+    """
+    Unregisters a fake that was registered by a previous invocation of one
+    of the sex_XXX() functions.
+
+    Arguments:
+        *name* (string or Fakeable)
+            the name of the class, or the class itself, whose fake is to be
+            unregistered; if a string, this will be the name of the class
+            or, if the class defines __FAKE_NAME__, the value of that class'
+            __FAKE_NAME__ attribute.
+
+    Returns True if a fake was indeed registered with the given name and
+    was successfully unregistered.  Returns False if a fake was *not*
+    registered with the given name and therefore this function did nothing.
+    """
+    fake_factory.unset(name)
+
+def clear():
+    """
+    Unregisters all fake objects that have been previously registered.
+    """
+    fake_factory.clear()
 
 ################################################################################
