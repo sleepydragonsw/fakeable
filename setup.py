@@ -13,7 +13,7 @@ distutils.core.setup(
     author="Denver Coneybeare",
     author_email="denver@sleepydragon.org",
     url="https://github.com/sleepydragonsw/fakeable",
-    py_modules=["fakeable", "fakeable_test"],
+    py_modules=["fakeable"],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
