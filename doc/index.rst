@@ -32,6 +32,7 @@ Contents
    example
    usage
    api
+   changelog
 
 Bug Reports and Feature Requests
 ================================
