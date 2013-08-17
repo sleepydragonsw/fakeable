@@ -17,7 +17,6 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
-################################################################################
 
 __all__ = [
     "Fakeable",
@@ -28,7 +27,6 @@ __all__ = [
     "FakeableCleanupMixin",
 ]
 
-################################################################################
 
 class Fakeable(type):
     """
@@ -102,7 +100,6 @@ class Fakeable(type):
         instance = type.__call__(self, *args, **kwargs)
         return instance
 
-################################################################################
 
 class FakeFactory(object):
     """
@@ -165,7 +162,6 @@ class FakeFactory(object):
         """
         pass
 
-################################################################################
 
 class FakeEntry(object):
     """
@@ -190,7 +186,6 @@ class FakeEntry(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.unregister()
 
-################################################################################
 
 class FakeObjectEntry(FakeEntry):
     """
@@ -205,7 +200,6 @@ class FakeObjectEntry(FakeEntry):
     def get(self, *args, **kwargs):
         return self.value
 
-################################################################################
 
 class FakeClassEntry(FakeEntry):
     """
@@ -221,12 +215,11 @@ class FakeClassEntry(FakeEntry):
         instance = self.value(*args, **kwargs)
         return instance
 
-################################################################################
 
 # the global FakeFactory instance
 fake_factory = FakeFactory()
 
-# expose the methods of the default FakeFactory as module-level functions
+
 def set_fake_class(name, value):
     """
     Configures the class with the given name to create fake objects instead
@@ -252,6 +245,7 @@ def set_fake_class(name, value):
     """
     fake_factory.set_fake_class(name, value)
 
+
 def set_fake_object(name, value):
     """
     Configures the class with the given name to always use a fake object
@@ -275,6 +269,7 @@ def set_fake_object(name, value):
     """
     fake_factory.set_fake_object(name, value)
 
+
 def unset(name):
     """
     Unregisters a fake that was registered by a previous invocation of one
@@ -293,26 +288,27 @@ def unset(name):
     """
     fake_factory.unset(name)
 
+
 def clear():
     """
     Unregisters all fake objects that have been previously registered.
     """
     fake_factory.clear()
 
-################################################################################
 
 class FakeableCleanupMixin(object):
     """
     A convenience class that can be inherited by unit test classes so that
     fakes are automatically cleaned up before and after each test runs.
-    This helps prevent fake objects inadvertently leaking into other test cases,
-    which can cause difficult-to-diagnose behaviour when it happens.
+    This helps prevent fake objects inadvertently leaking into other test
+    cases, which can cause difficult-to-diagnose behaviour when it happens.
 
     This class is intended to be subclassed by other classes that also inherit
     from ``unittest.TestCase``.
     It defines :meth:`~fakeable.FakeableCleanupMixin.setUp` and
-    :meth:`~fakeable.FakeableCleanupMixin.tearDown`, both of which simply invoke
-    :func:`fakeable.clear` and the method of the same name in the superclass.
+    :meth:`~fakeable.FakeableCleanupMixin.tearDown`, both of which simply
+    invoke :func:`fakeable.clear` and the method of the same name in the
+    superclass.
 
     *Example*: using this "mixin" class in a ``unittest.TestCase``::
 
@@ -324,8 +320,8 @@ class FakeableCleanupMixin(object):
     Before the method ``test()`` is executed the ``setUp()`` method will invoke
     :func:`fakeable.clear` to make sure there are no leftover fakes that were
     registered elsewhere.  Also, after the ``test()`` method completes,
-    ``tearDown()`` will invoke  :func:`fakeable.clear` to make sure that none of
-    the registered fakes are left behind to screw things up downstream.
+    ``tearDown()`` will invoke  :func:`fakeable.clear` to make sure that none
+    of the registered fakes are left behind to screw things up downstream.
 
     Note, however, that ``fakeable.FakeableCleanupMixin``
     *must* occur before ``unittest.TestCase`` in the base class list.
@@ -388,8 +384,8 @@ class FakeableCleanupMixin(object):
 
     def tearDown(self):
         """
-        Invokes :func:`fakeable.clear` and then the ``tearDown()`` method of the
-        superclass.
+        Invokes :func:`fakeable.clear` and then the ``tearDown()`` method of
+        the superclass.
         This ensures that fakes that have been set in tests do not leak into
         other tests.  It also precludes the need to explicitly unregister
         fake objects.
@@ -398,5 +394,3 @@ class FakeableCleanupMixin(object):
             clear()
         finally:
             super(FakeableCleanupMixin, self).tearDown()
-
-################################################################################
