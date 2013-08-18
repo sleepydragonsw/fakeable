@@ -23,35 +23,38 @@ import unittest
 
 import six
 
-################################################################################
 
 class MyCoolClass(six.with_metaclass(fakeable.Fakeable)):
     def __init__(self, arg1=None, arg2=None):
         self.arg1 = arg1
         self.arg2 = arg2
 
+
 class MyUnfakeableClass(object):
     def __init__(self, arg1=None, arg2=None):
         self.arg1 = arg1
         self.arg2 = arg2
+
 
 class MyUnfakeableClass1(object):
     def __init__(self, arg1=None, arg2=None):
         self.arg1 = arg1
         self.arg2 = arg2
 
+
 class MyUnfakeableClass2(object):
     def __init__(self, arg1=None, arg2=None):
         self.arg1 = arg1
         self.arg2 = arg2
 
+
 class MyCoolClassCustomFakeName(six.with_metaclass(fakeable.Fakeable)):
     __FAKE_NAME__ = "CustomName"
+
     def __init__(self, arg1=None, arg2=None):
         self.arg1 = arg1
         self.arg2 = arg2
 
-################################################################################
 
 class Test_Fakeable___new__(fakeable.FakeableCleanupMixin, unittest.TestCase):
 
@@ -66,7 +69,6 @@ class Test_Fakeable___new__(fakeable.FakeableCleanupMixin, unittest.TestCase):
             class NameNotHashable(six.with_metaclass(fakeable.Fakeable)):
                 __FAKE_NAME__ = set()
 
-################################################################################
 
 class Test_Fakeable___call__(fakeable.FakeableCleanupMixin, unittest.TestCase):
 
@@ -178,7 +180,6 @@ class Test_Fakeable___call__(fakeable.FakeableCleanupMixin, unittest.TestCase):
         x = MyCoolClass()
         self.assertIs(x, fake_object1)
 
-
     def test_FakeClassRegisteredByName(self):
         fakeable.set_fake_class("MyCoolClass", MyUnfakeableClass)
         x = MyCoolClass()
@@ -247,7 +248,6 @@ class Test_Fakeable___call__(fakeable.FakeableCleanupMixin, unittest.TestCase):
         x = MyCoolClass()
         self.assertIsInstance(x, MyUnfakeableClass1)
 
-################################################################################
 
 class Test_FakeableCleanupMixin(unittest.TestCase):
 
@@ -256,8 +256,9 @@ class Test_FakeableCleanupMixin(unittest.TestCase):
         x = self.TestableFakeableCleanupMixin()
         x.setUp()
         obj = MyCoolClass()
-        self.assertIsInstance(obj, MyCoolClass, "setUp() should have cleared "
-            "all of the registered fakes")
+        self.assertIsInstance(
+            obj, MyCoolClass, "setUp() should have cleared all of the "
+            "registered fakes")
         self.assertTrue(x.setUp_invoked)
 
     def test_setUp_SuperclassSetUpRaisesException(self):
@@ -267,8 +268,9 @@ class Test_FakeableCleanupMixin(unittest.TestCase):
         with self.assertRaises(ValueError):
             x.setUp()
         obj = MyCoolClass()
-        self.assertIs(obj, fake_my_cool_class_instance, "setUp() should *not* "
-            "have cleared all of the registered fakes")
+        self.assertIs(
+            obj, fake_my_cool_class_instance, "setUp() should *not* have "
+            "cleared all of the registered fakes")
         self.assertTrue(x.setUp_invoked)
 
     def test_tearDown_SuperclassSetUpSuccessful(self):
@@ -276,8 +278,9 @@ class Test_FakeableCleanupMixin(unittest.TestCase):
         x = self.TestableFakeableCleanupMixin()
         x.tearDown()
         obj = MyCoolClass()
-        self.assertIsInstance(obj, MyCoolClass, "tearDown() should have cleared "
-            "all of the registered fakes")
+        self.assertIsInstance(
+            obj, MyCoolClass, "tearDown() should have cleared all of the "
+            "registered fakes")
         self.assertTrue(x.tearDown_invoked)
 
     def test_tearDown_SuperclassSetUpRaisesException(self):
@@ -286,8 +289,9 @@ class Test_FakeableCleanupMixin(unittest.TestCase):
         with self.assertRaises(ValueError):
             x.tearDown()
         obj = MyCoolClass()
-        self.assertIsInstance(obj, MyCoolClass, "tearDown() should have cleared "
-            "all of the registered fakes")
+        self.assertIsInstance(
+            obj, MyCoolClass, "tearDown() should have cleared all of the "
+            "registered fakes")
         self.assertTrue(x.tearDown_invoked)
 
     class DemoBaseClass(object):
@@ -296,16 +300,17 @@ class Test_FakeableCleanupMixin(unittest.TestCase):
             self.tearDown_exception = tearDown_exception
             self.setUp_invoked = False
             self.tearDown_invoked = False
+
         def setUp(self):
             self.setUp_invoked = True
             if self.setUp_exception is not None:
                 raise self.setUp_exception
+
         def tearDown(self):
             self.tearDown_invoked = True
             if self.tearDown_exception is not None:
                 raise self.tearDown_exception
 
-    class TestableFakeableCleanupMixin(fakeable.FakeableCleanupMixin, DemoBaseClass):
+    class TestableFakeableCleanupMixin(
+            fakeable.FakeableCleanupMixin, DemoBaseClass):
         pass
-
-################################################################################
