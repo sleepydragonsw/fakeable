@@ -14,9 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Provides a mechanism by which classes can produce "fake" instances during unit
+tests and real instances when not under test.
+"""
+
 from __future__ import print_function
 from __future__ import unicode_literals
-
 
 __all__ = [
     "Fakeable",
@@ -63,7 +67,7 @@ class Fakeable(type):
     then that value will be used instead of the default.
     """
 
-    def __new__(cls, name, bases, dict_):
+    def __new__(mcs, name, bases, dict_):
         # use the class name as the "name" of the fake, but allow the class
         # to override this name by setting __FAKE_NAME__
         try:
@@ -75,29 +79,29 @@ class Fakeable(type):
             hash(__FAKE_NAME__)
 
         # create the type object with the possibly-slightly-modified dict
-        type_ = type.__new__(cls, name, bases, dict_)
+        type_ = type.__new__(mcs, name, bases, dict_)
         return type_
 
-    def __call__(self, *args, **kwargs):
+    def __call__(cls, *args, **kwargs):
         # try looking up the fake object by the class first
         try:
-            instance = fake_factory.get(self, *args, **kwargs)
-        except fake_factory.FakeNotFound:
+            instance = FAKE_FACTORY.get(cls, *args, **kwargs)
+        except FAKE_FACTORY.FakeNotFound:
             pass
         else:
             return instance
 
         # try looking up the fake object by name
-        fake_name = self.__FAKE_NAME__
+        fake_name = cls.__FAKE_NAME__
         try:
-            instance = fake_factory.get(fake_name, *args, **kwargs)
-        except fake_factory.FakeNotFound:
+            instance = FAKE_FACTORY.get(fake_name, *args, **kwargs)
+        except FAKE_FACTORY.FakeNotFound:
             pass
         else:
             return instance
 
         # no fake instance was registered; create a real instance
-        instance = type.__call__(self, *args, **kwargs)
+        instance = type.__call__(cls, *args, **kwargs)
         return instance
 
 
@@ -110,16 +114,25 @@ class FakeFactory(object):
         self.fake_factories = {}
 
     def set_fake_class(self, name, value):
+        """
+        See module-level set_fake_class() function for full documentation
+        """
         entry = FakeClassEntry(self, name, value)
         self.fake_factories[name] = entry
         return entry
 
     def set_fake_object(self, name, value):
+        """
+        See module-level set_fake_object() function for full documentation
+        """
         entry = FakeObjectEntry(self, name, value)
         self.fake_factories[name] = entry
         return entry
 
     def unset(self, name):
+        """
+        See module-level unset() function for full documentation
+        """
         try:
             del self.fake_factories[name]
         except KeyError:
@@ -128,6 +141,9 @@ class FakeFactory(object):
             return True
 
     def clear(self):
+        """
+        See module-level clear() function for full documentation
+        """
         self.fake_factories.clear()
 
     def get(self, name, *args, **kwargs):
@@ -175,9 +191,17 @@ class FakeEntry(object):
         self.name = name
 
     def unregister(self):
+        """
+        Invokes self.fake_factory.unset(self.name).
+        """
         self.fake_factory.unset(self.name)
 
     def get(self, *args, **kwargs):
+        """
+        Must be implemented by subclasses to get or create the fake object.
+        The given arguments are those that were specified to the class
+        constructor.
+        """
         raise NotImplementedError("must be implemented by a subclass")
 
     def __enter__(self):
@@ -217,7 +241,7 @@ class FakeClassEntry(FakeEntry):
 
 
 # the global FakeFactory instance
-fake_factory = FakeFactory()
+FAKE_FACTORY = FakeFactory()
 
 
 def set_fake_class(name, value):
@@ -243,7 +267,7 @@ def set_fake_class(name, value):
     statement; when the context of the "with" statement is exited the fake
     class will be automatically unregistered by a call to self.unset(name).
     """
-    fake_factory.set_fake_class(name, value)
+    FAKE_FACTORY.set_fake_class(name, value)
 
 
 def set_fake_object(name, value):
@@ -267,13 +291,13 @@ def set_fake_object(name, value):
     statement; when the context of the "with" statement is exited the fake
     object will be automatically unregistered by a call to self.unset(name).
     """
-    fake_factory.set_fake_object(name, value)
+    FAKE_FACTORY.set_fake_object(name, value)
 
 
 def unset(name):
     """
-    Unregisters a fake that was registered by a previous invocation of one
-    of the sex_XXX() functions.
+    Unregisters a fake that was registered by a previous invocation of
+    set_fake_object() or set_fake_class().
 
     Arguments:
         *name* (string or Fakeable)
@@ -286,14 +310,14 @@ def unset(name):
     was successfully unregistered.  Returns False if a fake was *not*
     registered with the given name and therefore this function did nothing.
     """
-    fake_factory.unset(name)
+    FAKE_FACTORY.unset(name)
 
 
 def clear():
     """
     Unregisters all fake objects that have been previously registered.
     """
-    fake_factory.clear()
+    FAKE_FACTORY.clear()
 
 
 class FakeableCleanupMixin(object):
