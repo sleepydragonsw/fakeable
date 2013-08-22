@@ -74,7 +74,7 @@ by using the :class:`~fakeable.FakeableCleanupMixin`
 to automatically unregister the fakes::
 
     import unittest
-    class TestHttpDownloader(unittest.TestCase, fakeable.FakeableCleanupMixin):
+    class TestHttpDownloader(fakeable.FakeableCleanupMixin, unittest.TestCase):
         def test_InvalidUrl(self):
             fakeable.set_fake_class("HttpDownloader", FakeHttpDownloader)
             retval = download_urls(["foo", "bar"])
