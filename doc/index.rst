@@ -54,6 +54,10 @@ https://github.com/sleepydragonsw/fakeable.
 The documentation for *Fakeable* is published at
 https://fakeable.readthedocs.org
 
+The *Fakeable* package is listed on the Python Package Index
+(a.k.a. "PyPI" or "Cheeseshop") at
+https://pypi.python.org/pypi/fakeable
+
 License
 =======
 
