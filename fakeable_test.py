@@ -314,3 +314,6 @@ class Test_FakeableCleanupMixin(unittest.TestCase):
     class TestableFakeableCleanupMixin(
             fakeable.FakeableCleanupMixin, DemoBaseClass):
         pass
+
+if __name__ == "__main__":
+    unittest.main()
