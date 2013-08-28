@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+.. rubric:: 1.0.3 *August 28, 2013*
+
+- add :func:`~fakeable.add_created_callback` and :func:`~fakeable.remove_created_callback` functions
+- add ``__version__`` attribute to the ``fakeable`` module
+- modify code to conform to PEP8
+- fix issues reported by pylint, all of which were cosmetic
+
 .. rubric:: 1.0.2 *August 16, 2013*
 
 - add FakeableCleanupMixin class
