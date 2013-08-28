@@ -28,6 +28,8 @@ __all__ = [
     "set_fake_object",
     "unset",
     "clear",
+    "add_created_callback",
+    "remove_created_callback",
     "FakeableCleanupMixin",
 ]
 
@@ -83,25 +85,29 @@ class Fakeable(type):
         return type_
 
     def __call__(cls, *args, **kwargs):
+        fake_name = cls.__FAKE_NAME__
+
         # try looking up the fake object by the class first
         try:
             instance = FAKE_FACTORY.get(cls, *args, **kwargs)
         except FAKE_FACTORY.FakeNotFound:
             pass
         else:
+            FAKE_FACTORY.notify_fakeable_created(fake_name, instance, cls)
             return instance
 
         # try looking up the fake object by name
-        fake_name = cls.__FAKE_NAME__
         try:
             instance = FAKE_FACTORY.get(fake_name, *args, **kwargs)
         except FAKE_FACTORY.FakeNotFound:
             pass
         else:
+            FAKE_FACTORY.notify_fakeable_created(fake_name, instance, cls)
             return instance
 
         # no fake instance was registered; create a real instance
         instance = type.__call__(cls, *args, **kwargs)
+        FAKE_FACTORY.notify_fakeable_created(fake_name, instance, cls)
         return instance
 
 
@@ -112,6 +118,7 @@ class FakeFactory(object):
 
     def __init__(self):
         self.fake_factories = {}
+        self.fakeable_created_callbacks = []
 
     def set_fake_class(self, name, value):
         """
@@ -145,16 +152,51 @@ class FakeFactory(object):
         See module-level clear() function for full documentation
         """
         self.fake_factories.clear()
+        self.fakeable_created_callbacks = []
+
+    def add_created_callback(self, callback):
+        """
+        See module-level add_created_callback() function
+        for full documentation
+        """
+        self.fakeable_created_callbacks.append(callback)
+
+    def remove_created_callback(self, callback):
+        """
+        See module-level remove_created_callback() function
+        for full documentation
+        """
+        try:
+            self.fakeable_created_callbacks.remove(callback)
+        except ValueError:
+            return False
+        else:
+            return True
+
+    def notify_fakeable_created(self, name, obj, obj_type):
+        """
+        Notifies all callbacks about an instance of a fakeable class being
+        created.  This method is not normally invoked directly, but rather is
+        invoked by the :class:`~fakeable.Fakeable` metaclass when it is
+        requested to create a new object.
+
+        The arguments are exactly those to specify to the callbacks registered
+        via :meth:`add_created_callback` so see the documentation for that
+        method for details.
+        """
+        for callback in self.fakeable_created_callbacks:
+            callback(name, obj, obj_type)
 
     def get(self, name, *args, **kwargs):
         """
         Gets or creates the fake object for a class.
 
-        This method is the one used by the Fakeable metaclass to create the
-        fake instances.  It should not normally be invoked directly.
+        This method is the one used by the :class:`fakeable.Fakeable` metaclass
+        to create the fake instances.  It should not normally be invoked
+        directly.
 
         Arguments:
-            *name* (string or Fakeable instance)
+            *name* (string or :class:`fakeable.Fakeable` instance)
                 the name of the class, or the class itself, whose fake object
                 to get or create; if a string, this will be the name of the
                 class or, if the class defines __FAKE_NAME__, the value of that
@@ -252,7 +294,7 @@ def set_fake_class(name, value):
     instead.
 
     Arguments:
-        *name* (string or Fakeable)
+        *name* (string or :class:`fakeable.Fakeable`)
             the name of the class, or the class itself, that will have fake
             instances created instead of real instances; if a string, this
             will be the name of the class or, if the class defines
@@ -277,7 +319,7 @@ def set_fake_object(name, value):
     the given name is created the given value will be returned instead.
 
     Arguments:
-        *name* (string or Fakeable)
+        *name* (string or :class:`fakeable.Fakeable`)
             the name of the class, or the class itself, that will have fake
             instances created instead of real instances; if a string, this
             will be the name of the class or, if the class defines
@@ -300,7 +342,7 @@ def unset(name):
     set_fake_object() or set_fake_class().
 
     Arguments:
-        *name* (string or Fakeable)
+        *name* (string or :class:`fakeable.Fakeable`)
             the name of the class, or the class itself, whose fake is to be
             unregistered; if a string, this will be the name of the class
             or, if the class defines __FAKE_NAME__, the value of that class'
@@ -313,9 +355,79 @@ def unset(name):
     FAKE_FACTORY.unset(name)
 
 
+def add_created_callback(callback):
+    """
+    Registers a callback to be invoked each time an instance of a
+    :class:`~fakeable.Fakeable` class is created.  The given callback will
+    invoked each time that a class with the :class:`~fakeable.Fakeable`
+    metaclass is created, whether it returns a fake object or a new instance of
+    the real class.  This can be useful during unit testing to examine the
+    objects created by a third-party after the fact.
+
+    No checking for duplicate callback registrations is performed; therefore,
+    if a given callback is registered twice then it will be invoked twice each
+    time that an instance of a :class:`~fakeable.Fakeable` class is created.
+
+    Callbacks are invoked synchronously, and in the order in which they are
+    added.  No exception handling is performed around the callbacks; therefore,
+    if a callback raises an exception it will trickle up the call stack until
+    it is either caught or falls of the end, aborting the program.  This will
+    also prevent the other callbacks from receiving the notification.
+
+    Callbacks may be unregistered by
+    :func:`~fakeable.remove_created_callback`
+    (to unregister a specific callback)
+    or :func:`~fakeable.clear` (to unregister *all* callbacks).
+
+    Arguments:
+        *callback* (function)
+            a function that will be invoked each time an instance of a
+            :class:`fakeable.Fakeable` class is created; this function must
+            accept the arguments documented below.
+
+    The arguments of the callback function are:
+        *name* (string)
+            the name of the fakeable type, which is normally a string, and will
+            be equal to the ``__FAKE_NAME__`` attribute of the
+            :class:`~fakeable.Fakeable` class.
+        *obj* (an object)
+            the object that was returned by the request for a new instance of
+            the :class:`~fakeable.Fakeable` class; this will be a new instance
+            of the :class:`~fakeable.Fakeable` class if no fake object is
+            registered or the fake object if one is.
+        *obj_type* (class object)
+            the class object of the :class:`~fakeable.Fakeable` class.
+    """
+    FAKE_FACTORY.add_created_callback(callback)
+
+
+def remove_created_callback(callback):
+    """
+    Unregisters a callback that was registered by a previous invocation of
+    :func:`~fakeable.add_created_callback`.
+    If the given callback is registered more than once then only one of its
+    registrations will be removed.  Therefore, to fully unregister a callback
+    there must be one call to this function for each call to
+    :func:`~fakeable.add_created_callback`.
+
+    Arguments:
+        *callback* (function)
+            the callback to remove; this must be the exact object that was
+            specified to add_fake_created_callback() for the "callback"
+            argument
+
+    Returns True if the given callback was found in the list of registered
+    callbacks and was removed; returns False if the given callback was *not*
+    found in the list of registered callbacks and therefore this method did
+    nothing.
+    """
+    return FAKE_FACTORY.remove_created_callback(callback)
+
+
 def clear():
     """
-    Unregisters all fake objects that have been previously registered.
+    Unregisters all fake objects that have been previously registered
+    and all callbacks that have been registered via add_created_callback().
     """
     FAKE_FACTORY.clear()
 

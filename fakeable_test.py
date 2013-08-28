@@ -56,6 +56,52 @@ class MyCoolClassCustomFakeName(six.with_metaclass(fakeable.Fakeable)):
         self.arg2 = arg2
 
 
+class FakeCreatedCallbackTester(object):
+    """
+    An object that can be specified to add_created_callback() to
+    test that the expected invocations do (or do not) occur.
+    """
+
+    NEXT_INDEX = 0
+
+    def __init__(self, test):
+        self.test = test
+        self.invocations = []
+
+    def __call__(self, name, obj, obj_type):
+        index = type(self).NEXT_INDEX
+        type(self).NEXT_INDEX += 1
+        invocation = self.Invocation(index, name, obj, obj_type)
+        self.invocations.append(invocation)
+
+    def assert_invoked_exactly_once(self):
+        num_invocations = len(self.invocations)
+        if num_invocations == 0:
+            self.test.fail(
+                "callback was not invoked, but expected exactly 1 invocation")
+        elif num_invocations > 1:
+            self.test.fail(
+                "callback was not invoked {} times, but expected exactly "
+                "1 invocation".format(num_invocations))
+        invocation = self.invocations[0]
+        return invocation
+
+    def assert_invocation_count(self, expected_count):
+        num_invocations = len(self.invocations)
+        if num_invocations != expected_count:
+            self.test.fail(
+                "callback was not invoked {} times, but expected exactly {} "
+                "invocations".format(num_invocations, expected_count))
+        return self.invocations[:expected_count]
+
+    class Invocation(object):
+        def __init__(self, index, name, obj, obj_type):
+            self.index = index
+            self.name = name
+            self.obj = obj
+            self.obj_type = obj_type
+
+
 class Test_Fakeable___new__(fakeable.FakeableCleanupMixin, unittest.TestCase):
 
     def test_DefaultFakeName(self):
@@ -314,6 +360,275 @@ class Test_FakeableCleanupMixin(unittest.TestCase):
     class TestableFakeableCleanupMixin(
             fakeable.FakeableCleanupMixin, DemoBaseClass):
         pass
+
+
+class Test_add_created_callback(
+        fakeable.FakeableCleanupMixin, unittest.TestCase):
+
+    def test_NoFakeRegistered_DefaultFakeName(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        MyCoolClass()
+        invocation = callback.assert_invoked_exactly_once()
+        self.assertEqual(invocation.name, "MyCoolClass")
+        self.assertIsInstance(invocation.obj, MyCoolClass)
+        self.assertIs(invocation.obj_type, MyCoolClass)
+
+    def test_NoFakeRegistered_CustomFakeName(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        MyCoolClassCustomFakeName()
+        invocation = callback.assert_invoked_exactly_once()
+        self.assertEqual(invocation.name, "CustomName")
+        self.assertIsInstance(invocation.obj, MyCoolClassCustomFakeName)
+        self.assertIs(invocation.obj_type, MyCoolClassCustomFakeName)
+
+    def test_2FakeableInstancesCreated(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        MyCoolClass()
+        MyCoolClass()
+        invocations = callback.assert_invocation_count(2)
+        self.assertEqual(invocations[0].name, "MyCoolClass")
+        self.assertIsInstance(invocations[0].obj, MyCoolClass)
+        self.assertIs(invocations[0].obj_type, MyCoolClass)
+        self.assertEqual(invocations[1].name, "MyCoolClass")
+        self.assertIsInstance(invocations[1].obj, MyCoolClass)
+        self.assertIs(invocations[1].obj_type, MyCoolClass)
+
+    def test_2CallbacksRegistered(self):
+        callback1 = FakeCreatedCallbackTester(self)
+        callback2 = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback1)
+        fakeable.add_created_callback(callback2)
+        MyCoolClass()
+        invocation1 = callback1.assert_invoked_exactly_once()
+        self.assertEqual(invocation1.name, "MyCoolClass")
+        self.assertIsInstance(invocation1.obj, MyCoolClass)
+        self.assertIs(invocation1.obj_type, MyCoolClass)
+        invocation2 = callback2.assert_invoked_exactly_once()
+        self.assertIs(invocation2.name, invocation1.name)
+        self.assertIs(invocation2.obj, invocation1.obj)
+        self.assertIs(invocation2.obj_type, invocation1.obj_type)
+
+    def test_2CallbacksRegistered_InvokedInCorrectOrder(self):
+        callback1 = FakeCreatedCallbackTester(self)
+        callback2 = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback1)
+        fakeable.add_created_callback(callback2)
+        MyCoolClass()
+        invocation1 = callback1.assert_invoked_exactly_once()
+        invocation2 = callback2.assert_invoked_exactly_once()
+        self.assertLess(invocation1.index, invocation2.index)
+
+    def test_CallbackRegisteredTwice(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        fakeable.add_created_callback(callback)
+        MyCoolClass()
+        invocations = callback.assert_invocation_count(2)
+        self.assertEqual(invocations[0].name, "MyCoolClass")
+        self.assertIsInstance(invocations[0].obj, MyCoolClass)
+        self.assertIs(invocations[0].obj_type, MyCoolClass)
+        self.assertEqual(invocations[1].name, "MyCoolClass")
+        self.assertIsInstance(invocations[1].obj, MyCoolClass)
+        self.assertIs(invocations[1].obj_type, MyCoolClass)
+
+    def test_FakeObjectRegisteredByName(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        fake_object = object()
+        fakeable.set_fake_object("MyCoolClass", fake_object)
+        MyCoolClass()
+        invocation = callback.assert_invoked_exactly_once()
+        self.assertEqual(invocation.name, "MyCoolClass")
+        self.assertIs(invocation.obj, fake_object)
+        self.assertIs(invocation.obj_type, MyCoolClass)
+
+    def test_FakeObjectRegisteredByName_2InstancesCreated(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        fake_object = object()
+        fakeable.set_fake_object("MyCoolClass", fake_object)
+        MyCoolClass()
+        MyCoolClass()
+        invocations = callback.assert_invocation_count(2)
+        self.assertEqual(invocations[0].name, "MyCoolClass")
+        self.assertIs(invocations[0].obj, fake_object)
+        self.assertIs(invocations[0].obj_type, MyCoolClass)
+        self.assertEqual(invocations[1].name, "MyCoolClass")
+        self.assertIs(invocations[1].obj, fake_object)
+        self.assertIs(invocations[1].obj_type, MyCoolClass)
+
+    def test_FakeObjectRegisteredByClass(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        fake_object = object()
+        fakeable.set_fake_object(MyCoolClass, fake_object)
+        MyCoolClass()
+        invocation = callback.assert_invoked_exactly_once()
+        self.assertEqual(invocation.name, "MyCoolClass")
+        self.assertIs(invocation.obj, fake_object)
+        self.assertIs(invocation.obj_type, MyCoolClass)
+
+    def test_FakeObjectRegisteredByClass_2InstancesCreated(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        fake_object = object()
+        fakeable.set_fake_object(MyCoolClass, fake_object)
+        MyCoolClass()
+        MyCoolClass()
+        invocations = callback.assert_invocation_count(2)
+        self.assertEqual(invocations[0].name, "MyCoolClass")
+        self.assertIs(invocations[0].obj, fake_object)
+        self.assertIs(invocations[0].obj_type, MyCoolClass)
+        self.assertEqual(invocations[1].name, "MyCoolClass")
+        self.assertIs(invocations[1].obj, fake_object)
+        self.assertIs(invocations[1].obj_type, MyCoolClass)
+
+    def test_FakeClassRegisteredByName(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        fakeable.set_fake_class("MyCoolClass", MyUnfakeableClass)
+        MyCoolClass()
+        invocation = callback.assert_invoked_exactly_once()
+        self.assertEqual(invocation.name, "MyCoolClass")
+        self.assertIsInstance(invocation.obj, MyUnfakeableClass)
+        self.assertIs(invocation.obj_type, MyCoolClass)
+
+    def test_FakeClassRegisteredByName_2InstancesCreated(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        fakeable.set_fake_class("MyCoolClass", MyUnfakeableClass)
+        MyCoolClass()
+        MyCoolClass()
+        invocations = callback.assert_invocation_count(2)
+        self.assertEqual(invocations[0].name, "MyCoolClass")
+        self.assertIsInstance(invocations[0].obj, MyUnfakeableClass)
+        self.assertIs(invocations[0].obj_type, MyCoolClass)
+        self.assertEqual(invocations[1].name, "MyCoolClass")
+        self.assertIsInstance(invocations[1].obj, MyUnfakeableClass)
+        self.assertIs(invocations[1].obj_type, MyCoolClass)
+        self.assertIsNot(invocations[0].obj, invocations[1].obj)
+
+    def test_FakeClassRegisteredByClass(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        fakeable.set_fake_class(MyCoolClass, MyUnfakeableClass)
+        MyCoolClass()
+        invocation = callback.assert_invoked_exactly_once()
+        self.assertEqual(invocation.name, "MyCoolClass")
+        self.assertIsInstance(invocation.obj, MyUnfakeableClass)
+        self.assertIs(invocation.obj_type, MyCoolClass)
+
+    def test_FakeClassRegisteredByClass_2InstancesCreated(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        fakeable.set_fake_class(MyCoolClass, MyUnfakeableClass)
+        MyCoolClass()
+        MyCoolClass()
+        invocations = callback.assert_invocation_count(2)
+        self.assertEqual(invocations[0].name, "MyCoolClass")
+        self.assertIsInstance(invocations[0].obj, MyUnfakeableClass)
+        self.assertIs(invocations[0].obj_type, MyCoolClass)
+        self.assertEqual(invocations[1].name, "MyCoolClass")
+        self.assertIsInstance(invocations[1].obj, MyUnfakeableClass)
+        self.assertIs(invocations[1].obj_type, MyCoolClass)
+
+
+class Test_remove_created_callback(
+        fakeable.FakeableCleanupMixin, unittest.TestCase):
+
+    def test_0CallbacksAdded_RemoveNeverAddedCallback(self):
+        callback = FakeCreatedCallbackTester(self)
+        retval = fakeable.remove_created_callback(callback)
+        self.assertIs(retval, False)
+        fakeable.add_created_callback(callback)
+        MyCoolClass()
+        callback.assert_invoked_exactly_once()
+
+    def test_1CallbacksAdded_RemoveNeverAddedCallback(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        retval = fakeable.remove_created_callback(object())
+        self.assertIs(retval, False)
+        MyCoolClass()
+        callback.assert_invoked_exactly_once()
+
+    def test_1CallbacksAdded_RemoveTheAddedCallback(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        retval = fakeable.remove_created_callback(callback)
+        self.assertIs(retval, True)
+        MyCoolClass()
+        callback.assert_invocation_count(0)
+
+    def test_2CallbacksAdded_RemoveNeverAddedCallback(self):
+        callback1 = FakeCreatedCallbackTester(self)
+        callback2 = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback1)
+        fakeable.add_created_callback(callback2)
+        retval = fakeable.remove_created_callback(object())
+        self.assertIs(retval, False)
+        MyCoolClass()
+        callback1.assert_invoked_exactly_once()
+        callback2.assert_invoked_exactly_once()
+
+    def test_2CallbacksAdded_Remove1stAddedCallback(self):
+        callback1 = FakeCreatedCallbackTester(self)
+        callback2 = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback1)
+        fakeable.add_created_callback(callback2)
+        retval = fakeable.remove_created_callback(callback1)
+        self.assertIs(retval, True)
+        MyCoolClass()
+        callback1.assert_invocation_count(0)
+        callback2.assert_invoked_exactly_once()
+
+    def test_2CallbacksAdded_Remove2ndAddedCallback(self):
+        callback1 = FakeCreatedCallbackTester(self)
+        callback2 = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback1)
+        fakeable.add_created_callback(callback2)
+        retval = fakeable.remove_created_callback(callback2)
+        self.assertIs(retval, True)
+        MyCoolClass()
+        callback1.assert_invoked_exactly_once()
+        callback2.assert_invocation_count(0)
+
+    def test_2CallbacksAdded_RemoveBothAddedCallbacks(self):
+        callback1 = FakeCreatedCallbackTester(self)
+        callback2 = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback1)
+        fakeable.add_created_callback(callback2)
+        retval1 = fakeable.remove_created_callback(callback1)
+        self.assertIs(retval1, True)
+        retval2 = fakeable.remove_created_callback(callback2)
+        self.assertIs(retval2, True)
+        MyCoolClass()
+        callback1.assert_invocation_count(0)
+        callback2.assert_invocation_count(0)
+
+    def test_1CallbacksAdded2Times_RemoveTheAddedCallback1Time(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        fakeable.add_created_callback(callback)
+        retval = fakeable.remove_created_callback(callback)
+        self.assertIs(retval, True)
+        MyCoolClass()
+        callback.assert_invoked_exactly_once()
+
+    def test_1CallbacksAdded2Times_RemoveTheAddedCallback2Times(self):
+        callback = FakeCreatedCallbackTester(self)
+        fakeable.add_created_callback(callback)
+        fakeable.add_created_callback(callback)
+        retval1 = fakeable.remove_created_callback(callback)
+        self.assertIs(retval1, True)
+        retval2 = fakeable.remove_created_callback(callback)
+        self.assertIs(retval2, True)
+        MyCoolClass()
+        callback.assert_invocation_count(0)
+
 
 if __name__ == "__main__":
     unittest.main()

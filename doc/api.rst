@@ -14,6 +14,12 @@ Registering and Unregistering Fakes
 .. autofunction:: fakeable.unset
 .. autofunction:: fakeable.clear
 
+Being Notified When Fakeable Objects Are Created
+------------------------------------------------
+
+.. autofunction:: fakeable.add_created_callback
+.. autofunction:: fakeable.remove_created_callback
+
 The ``FakeableCleanupMixin`` Helper Class
 -----------------------------------------
 
