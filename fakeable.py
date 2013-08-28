@@ -33,6 +33,8 @@ __all__ = [
     "FakeableCleanupMixin",
 ]
 
+__version__ = "1.0.3-dev"
+
 
 class Fakeable(type):
     """
