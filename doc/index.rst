@@ -18,7 +18,7 @@ and any class that wants to be fakeable during unit tests
 need only add a single line to its class definition to make this dream a reality.
 
 *Fakeable* is supported in Python 2.7 and Python 3.3,
-and also has been confirmed to work in PyPy 2.1 and PyPy3 2.1-beta1.
+and also has been confirmed to work in PyPy 2.1, PyPy3 2.1-beta1, and Jython 2.7-b1.
 
 *Fakeable* is free and open-source software,
 released under the Apache License Version 2.0.
